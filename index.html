@@ -66,12 +66,14 @@
             border-radius: 10px;
             text-align: center;
             border: 2px solid #333;
+            position: relative;
         }
 
         .total-label { 
             font-size: 1.1rem; 
             color: #aaa; 
             margin: 8px 0 4px; 
+            cursor: help;
         }
         .total-cad { 
             font-size: 2.3rem; 
@@ -82,6 +84,27 @@
             font-size: 2.8rem; 
             font-weight: bold; 
             color: #ff8800; 
+        }
+
+        /* Tooltip Styles */
+        .total-label[title] {
+            position: relative;
+        }
+        .total-label[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            pointer-events: none;
         }
 
         .per-llm {
@@ -113,7 +136,7 @@
             font-size: 1.15rem;
         }
         td:first-child { 
-            color: #7dd3fc;   /* Sky blue */
+            color: #7dd3fc;
             font-weight: 500;
         }
 
@@ -128,7 +151,6 @@
 <body>
     <div class="container">
         <h1>Drill Sats</h1>
-       
         <p class="subtitle">Drilling Budget Calculator</p>
 
         <div class="input-group">
@@ -176,7 +198,8 @@
             <div class="total-label">CAD</div>
             <div class="total-cad" id="totalCAD">$0</div>
             
-            <div class="total-label">SATS</div>
+            <!-- SATS with tooltip -->
+            <div class="total-label" title="1 ₿itcoin = 100,000,000 SATS">SATS</div>
             <div class="total-sats" id="totalSats">0</div>
             
             <div class="per-llm">
@@ -184,9 +207,11 @@
                 <div>SATS/LLm <span id="satsPerLLm">0</span></div>
             </div>
         </div>
- <div class="live-price" id="liveBtcPrice">
+
+        <div class="live-price" id="liveBtcPrice">
             ₿itcoin Price (CAD): <strong>—</strong> <span style="font-size:1.11rem;color:#888;">(live)</span>
         </div>
+
         <h3 style="color:#e11d48; margin-top:40px;">Cost Breakdown (CAD)</h3>
         <table>
             <thead>
@@ -197,12 +222,12 @@
                 <tr><td>Fuel & Boiler</td><td id="fuel">0</td></tr>
                 <tr><td>Frac Tools</td><td id="fracPart">0</td></tr>
                 <tr>
-    <td>
-        Variable Cost<br>
-        <span style="font-size: 0.92rem; color: #888;">(R² = <span id="r2Value">0.94</span>)</span>
-    </td>
-    <td id="trendPart">0</td>
-</tr>
+                    <td>
+                        Variable Cost<br>
+                        <span style="font-size: 0.92rem; color: #888;">(R² = <span id="r2Value">0.94</span>)</span>
+                    </td>
+                    <td id="trendPart">0</td>
+                </tr>
                 <tr><td>Estimated Days</td><td id="estDays">0</td></tr>
                 <tr><td>Contingency</td><td id="cont">0</td></tr>
                 <tr style="font-weight:bold; background:#222;"><td>Total</td><td id="totalRow">0</td></tr>
