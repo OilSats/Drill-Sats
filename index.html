@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drill Sats</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@700;1,700&display=swap');
+
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: 'Ubuntu', 'Segoe UI', Arial, sans-serif;
             background: #0f0f0f;
             color: #ddd;
             margin: 0;
@@ -20,8 +22,21 @@
             padding: 30px;
             box-shadow: 0 0 20px rgba(255, 140, 0, 0.2);
         }
-        h1 { text-align: center; color: #ff8800; margin-bottom: 8px; }
-        .subtitle { text-align: center; color: #aaa; margin-bottom: 30px; }
+        h1 { 
+            text-align: center; 
+            color: #ff8800; 
+            margin-bottom: 8px; 
+            font-family: 'Ubuntu', sans-serif;
+            font-style: italic;
+            font-weight: 700;
+        }
+        .subtitle { 
+            text-align: center; 
+            color: #aaa; 
+            margin-bottom: 30px; 
+            font-family: 'Ubuntu', sans-serif;
+            font-style: italic;
+        }
 
         .input-group {
             margin-bottom: 16px;
@@ -30,7 +45,10 @@
             gap: 15px;
             flex-wrap: wrap;
         }
-        label { min-width: 200px; font-weight: 600; }
+        label { 
+            min-width: 200px; 
+            font-weight: 600; 
+        }
         select, input[type="number"] {
             padding: 10px;
             background: #333;
@@ -38,7 +56,7 @@
             color: #fff;
             border-radius: 6px;
             font-size: 16px;
-            max-width: 140px;
+            max-width: 75px;        /* ← Made much narrower (half width) */
         }
 
         .result {
@@ -110,8 +128,7 @@
 <body>
     <div class="container">
         <h1>Drill Sats</h1>
-        <p class="subtitle">Drilling Budget Calculator • 
-            Final Cost in CAD & Sats</p>
+        <p class="subtitle">Drilling Budget Calculator • Final Cost in CAD & Sats</p>
 
         <div class="input-group">
             <label for="weather">Weather:</label>
@@ -142,7 +159,7 @@
         </div>
 
         <div class="input-group">
-            <label for="ll">LL (Lateral Length):</label>
+            <label for="ll">LL (Lateral Length - meters):</label>
             <input type="number" id="ll" value="3000" min="500" step="50">
         </div>
 
@@ -203,7 +220,7 @@
         const TREND_A = -0.1754;
         const TREND_B = 943.81;
         const R_SQUARED = 0.94;
-        const LL_PER_DAY = 251;   // Used for Estimated Days
+        const LL_PER_DAY = 251;
 
         let currentBtcPriceCAD = 98800;
 
@@ -247,14 +264,12 @@
 
             const estDays = (LL / LL_PER_DAY).toFixed(1);
 
-            // Update totals
             document.getElementById('totalCAD').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA');
             document.getElementById('totalSats').textContent = totalSats.toLocaleString('en-US');
 
             document.getElementById('cadPerLLm').textContent = cadPerLLm;
             document.getElementById('satsPerLLm').textContent = satsPerLLm.toLocaleString('en-US');
 
-            // Breakdown
             document.getElementById('fuel').textContent = '$' + Math.round(fuel).toLocaleString('en-CA');
             document.getElementById('rigMove').textContent = '$' + Math.round(rigMove).toLocaleString('en-CA');
             document.getElementById('fracPart').textContent = '$' + Math.round(fracPart).toLocaleString('en-CA');
