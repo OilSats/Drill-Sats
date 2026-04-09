@@ -38,7 +38,7 @@
             font-style: italic;
         }
 
-               .input-group {
+        .input-group {
             margin-bottom: 16px;
             display: flex;
             align-items: center;
@@ -49,7 +49,6 @@
             min-width: 200px; 
             font-weight: 600; 
         }
-
         select, input[type="number"] {
             padding: 10px;
             background: #333;
@@ -57,13 +56,8 @@
             color: #fff;
             border-radius: 6px;
             font-size: 16px;
+            max-width: 75px;
         }
-
-        /* Width overrides */
-        #weather       { max-width: 160px; }   /* Weather - nice and wide */
-        #wellCount     { max-width: 110px; }
-        #fracSpacing   { max-width: 110px; }
-        input[type="number"] { max-width: 75px; }   /* LL and Contingency stay narrow */
 
         .result {
             margin-top: 40px;
@@ -140,7 +134,7 @@
             <label for="weather">Weather:</label>
             <select id="weather">
                 <option value="Warm">Warm</option>
-                <option value="Cold">Cold</option>
+                <option value="Cold" selected>Cold</option>
             </select>
         </div>
 
@@ -148,7 +142,7 @@
             <label for="wellCount">Well # on pad:</label>
             <select id="wellCount">
                 <option value="1st">1st</option>
-                <option value="2nd+">2nd+</option>
+                <option value="2nd+" selected>2nd+</option>
             </select>
         </div>
 
@@ -217,7 +211,7 @@
         </table>
 
         <div class="note">
-            LL is in meters • Live ₿itcoin price (CAD) •  Apr 2026; Prepared By: Ian Mills - Drilling Engineer; P.L. Eng
+            LL is in meters • Live ₿itcoin price (CAD) •  2026-04-09; Prepared By: Ian Mills - Drilling Engineer; P.L. Eng
         </div>
     </div>
 
@@ -236,42 +230,12 @@
 
         let currentBtcPriceCAD = 98800;
 
-        // ==================== SAVE & LOAD INPUTS ====================
-        function saveInputs() {
-            localStorage.setItem('drillSats_weather', document.getElementById('weather').value);
-            localStorage.setItem('drillSats_wellCount', document.getElementById('wellCount').value);
-            localStorage.setItem('drillSats_fracSpacing', document.getElementById('fracSpacing').value);
-            localStorage.setItem('drillSats_ll', document.getElementById('ll').value);
-            localStorage.setItem('drillSats_contingency', document.getElementById('contingency').value);
-        }
-
-        function loadInputs() {
-            const weather = localStorage.getItem('drillSats_weather');
-            const wellCount = localStorage.getItem('drillSats_wellCount');
-            const fracSpacing = localStorage.getItem('drillSats_fracSpacing');
-            const ll = localStorage.getItem('drillSats_ll');
-            const contingency = localStorage.getItem('drillSats_contingency');
-
-            if (weather) document.getElementById('weather').value = weather;
-            if (wellCount) document.getElementById('wellCount').value = wellCount;
-            if (fracSpacing) document.getElementById('fracSpacing').value = fracSpacing;
-            if (ll) document.getElementById('ll').value = ll;
-            if (contingency) document.getElementById('contingency').value = contingency;
-        }
-
-        // Save inputs whenever user changes anything
-        function setupAutoSave() {
-            document.querySelectorAll('select, input').forEach(el => {
-                el.addEventListener('change', saveInputs);
-                el.addEventListener('input', saveInputs);   // for number inputs
-            });
-        }
-
         async function fetchLiveBtcPrice() {
             try {
                 const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=cad');
                 const data = await response.json();
                 currentBtcPriceCAD = data.bitcoin.cad;
+
                 document.getElementById('liveBtcPrice').innerHTML = 
                     `Bitcoin Price (CAD): <strong>$${currentBtcPriceCAD.toLocaleString('en-CA')}</strong> <span style="font-size:0.85rem;color:#666;">(live)</span>`;
             } catch (err) {
@@ -282,7 +246,6 @@
         }
 
         function calculate() {
-            // ... your existing calculate function (unchanged) ...
             const weather = document.getElementById('weather').value;
             const wellCount = document.getElementById('wellCount').value;
             const fracSpacing = parseFloat(document.getElementById('fracSpacing').value);
@@ -306,6 +269,7 @@
             const satsPerLLm = LL > 0 ? Math.round(totalSats / LL) : 0;
             const estDays = (LL / LL_PER_DAY).toFixed(1);
 
+            // Update all displays
             document.getElementById('totalCAD').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA');
             document.getElementById('totalSats').textContent = totalSats.toLocaleString('en-US');
 
@@ -323,13 +287,21 @@
             document.getElementById('r2Value').textContent = R_SQUARED.toFixed(2);
         }
 
-        // Initialize everything
+        // ==================== LIVE UPDATING + PERSISTENCE ====================
+        function setupLiveUpdate() {
+            const inputs = document.querySelectorAll('select, input');
+            inputs.forEach(input => {
+                input.addEventListener('input', calculate);   // Real-time as you type
+                input.addEventListener('change', calculate);  // For dropdowns
+            });
+        }
+
+        // Initial load
         window.onload = async () => {
-            loadInputs();           // Restore saved values
-            setupAutoSave();        // Enable auto-saving
+            setupLiveUpdate();
             await fetchLiveBtcPrice();
             setInterval(fetchLiveBtcPrice, 60000);
-            calculate();            // Initial calculation
+            calculate();                    // Run once on load
         };
     </script>
 </body>
