@@ -22,6 +22,7 @@
         }
         h1 { text-align: center; color: #ff8800; margin-bottom: 8px; }
         .subtitle { text-align: center; color: #aaa; margin-bottom: 30px; }
+
         .input-group {
             margin-bottom: 16px;
             display: flex;
@@ -37,51 +38,72 @@
             color: #fff;
             border-radius: 6px;
             font-size: 16px;
+            max-width: 140px;
         }
+
         .result {
-            margin-top: 35px;
-            padding: 25px;
+            margin-top: 40px;
+            padding: 30px;
             background: #222;
             border-radius: 10px;
             text-align: center;
             border: 2px solid #333;
         }
+
+        .total-label { 
+            font-size: 1.1rem; 
+            color: #aaa; 
+            margin: 8px 0 4px; 
+        }
         .total-cad { 
-            font-size: 2.1rem; 
+            font-size: 2.3rem; 
             font-weight: bold; 
-            color: #e11d48; /* Darker rose/red */
+            color: #e11d48; 
         }
         .total-sats { 
-            font-size: 2.7rem; 
+            font-size: 2.8rem; 
             font-weight: bold; 
             color: #ff8800; 
         }
+
         .per-llm {
-            margin-top: 15px;
-            font-size: 1.35rem;
+            margin-top: 25px;
+            font-size: 1.4rem;
             color: #ccc;
+            line-height: 1.8;
         }
+
         .live-price {
-            margin-top: 10px;
-            font-size: 1.1rem;
-            color: #88ff88;
+            margin-top: 15px;
+            font-size: 1.15rem;
+            color: #ff8800;
         }
+
         table {
             width: 100%;
-            margin-top: 35px;
+            margin-top: 40px;
             border-collapse: collapse;
         }
         th, td {
-            padding: 12px;
+            padding: 13px;
             text-align: left;
             border-bottom: 1px solid #444;
         }
-        th { background: #222; color: #ff8800; }
+        th { 
+            background: #222; 
+            color: #e11d48; 
+            font-size: 1.15rem;
+        }
+        td:first-child { 
+            color: #7dd3fc;   /* Sky blue for component names */
+            font-weight: 500;
+        }
+
         .note {
             font-size: 0.9rem;
             color: #888;
             text-align: center;
-            margin-top: 30px;
+            margin-top: 35px;
         }
     </style>
 </head>
@@ -125,7 +147,7 @@
 
         <div class="input-group">
             <label for="contingency">Contingency (%):</label>
-            <input type="number" id="contingency" value="5" min="0" max="50" step="0.1">
+            <input type="number" id="contingency" value="0" min="0" max="50" step="0.1">
             <span style="color:#888;">%</span>
         </div>
 
@@ -135,16 +157,20 @@
 
         <div class="result">
             <h2>Total Drilling Cost</h2>
-            <div class="total-cad" id="totalCAD">$0 CAD</div>
-            <div class="total-sats" id="totalSats">0 Sats</div>
+            
+            <div class="total-label">CAD</div>
+            <div class="total-cad" id="totalCAD">$0</div>
+            
+            <div class="total-label">SATS</div>
+            <div class="total-sats" id="totalSats">0</div>
             
             <div class="per-llm">
-                <span id="cadPerLLm">C$0.00 / LLm</span> &nbsp;&nbsp;&nbsp; 
-                <span id="satsPerLLm">0 Sats / LLm</span>
+                <div>C$/LLm <span id="cadPerLLm">0.00</span></div>
+                <div>Sats/LLm <span id="satsPerLLm">0</span></div>
             </div>
         </div>
 
-        <h3 style="color:#ff8800; margin-top:40px;">Cost Breakdown (CAD)</h3>
+        <h3 style="color:#e11d48; margin-top:40px;">Cost Breakdown (CAD)</h3>
         <table>
             <thead>
                 <tr><th>Component</th><th>Amount (CAD)</th></tr>
@@ -153,7 +179,7 @@
                 <tr><td>Fuel/Boiler</td><td id="fuel">0</td></tr>
                 <tr><td>Rig Move</td><td id="rigMove">0</td></tr>
                 <tr><td>Frac Stage Component</td><td id="fracPart">0</td></tr>
-                <tr><td>Trendline Component (R² value)</td><td id="trendPart">0</td></tr>
+                <tr><td>Trendline Component (R² = <span id="r2Value">0.94</span>)</td><td id="trendPart">0</td></tr>
                 <tr><td>Contingency</td><td id="cont">0</td></tr>
                 <tr style="font-weight:bold; background:#222;"><td>Total</td><td id="totalRow">0</td></tr>
             </tbody>
@@ -182,10 +208,11 @@
         const FRAC_DIV = 14.5;
         const TREND_A = -0.1754;
         const TREND_B = 943.81;
+        const R_SQUARED = 0.94;
 
         // ============================================================
 
-        let currentBtcPriceCAD = 98800;   // fallback
+        let currentBtcPriceCAD = 98800;
 
         async function fetchLiveBtcPrice() {
             try {
@@ -196,7 +223,6 @@
                 document.getElementById('liveBtcPrice').innerHTML = 
                     `Bitcoin Price (CAD): <strong>$${currentBtcPriceCAD.toLocaleString('en-CA')}</strong> <span style="font-size:0.85rem;color:#666;">(live)</span>`;
             } catch (err) {
-                console.warn("Could not fetch live BTC price — using fallback");
                 document.getElementById('liveBtcPrice').innerHTML = 
                     `Bitcoin Price (CAD): <strong>$${currentBtcPriceCAD.toLocaleString('en-CA')}</strong> <span style="font-size:0.85rem;color:#f66;">(fallback)</span>`;
             }
@@ -207,9 +233,12 @@
             const weather = document.getElementById('weather').value;
             const wellCount = document.getElementById('wellCount').value;
             const fracSpacing = parseFloat(document.getElementById('fracSpacing').value);
-            const LL = parseFloat(document.getElementById('ll').value) || 3000;
-            let contingencyPct = parseFloat(document.getElementById('contingency').value) || 5;
-            const contingency = contingencyPct / 100;   // convert % to decimal
+            
+            let LL = parseFloat(document.getElementById('ll').value);
+            if (!LL || LL <= 0) LL = 1000;
+
+            let contingencyPct = parseFloat(document.getElementById('contingency').value) || 0;
+            const contingency = contingencyPct / 100;
 
             const fuel = fuelRates[weather] * LL;
             const rigMove = rigMoveRates[wellCount] || 25000;
@@ -223,18 +252,24 @@
             const cadPerLLm = LL > 0 ? (totalCAD / LL).toFixed(2) : 0;
             const satsPerLLm = LL > 0 ? Math.round(totalSats / LL) : 0;
 
-            document.getElementById('totalCAD').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA') + ' CAD';
-            document.getElementById('totalSats').textContent = totalSats.toLocaleString('en-US') + ' Sats';
+            // Update totals
+            document.getElementById('totalCAD').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA');
+            document.getElementById('totalSats').textContent = totalSats.toLocaleString('en-US');
 
-            document.getElementById('cadPerLLm').textContent = 'C$' + cadPerLLm + ' / LLm';
-            document.getElementById('satsPerLLm').textContent = satsPerLLm.toLocaleString('en-US') + ' Sats / LLm';
+            // Per LLm
+            document.getElementById('cadPerLLm').textContent = cadPerLLm;
+            document.getElementById('satsPerLLm').textContent = satsPerLLm.toLocaleString('en-US');
 
+            // Breakdown
             document.getElementById('fuel').textContent = '$' + Math.round(fuel).toLocaleString('en-CA');
             document.getElementById('rigMove').textContent = '$' + Math.round(rigMove).toLocaleString('en-CA');
             document.getElementById('fracPart').textContent = '$' + Math.round(fracPart).toLocaleString('en-CA');
             document.getElementById('trendPart').textContent = '$' + Math.round(trendPart).toLocaleString('en-CA');
             document.getElementById('cont').textContent = '$' + Math.round(totalCAD - subtotal).toLocaleString('en-CA');
             document.getElementById('totalRow').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA');
+
+            // R² value
+            document.getElementById('r2Value').textContent = R_SQUARED.toFixed(2);
         }
 
         document.querySelectorAll('select, input').forEach(input => {
