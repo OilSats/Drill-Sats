@@ -46,8 +46,16 @@
             text-align: center;
             border: 2px solid #333;
         }
-        .total-cad { font-size: 2.1rem; font-weight: bold; color: #ff69b4; }
-        .total-sats { font-size: 2.7rem; font-weight: bold; color: #ff8800; }
+        .total-cad { 
+            font-size: 2.1rem; 
+            font-weight: bold; 
+            color: #e11d48; /* Darker rose/red */
+        }
+        .total-sats { 
+            font-size: 2.7rem; 
+            font-weight: bold; 
+            color: #ff8800; 
+        }
         .per-llm {
             margin-top: 15px;
             font-size: 1.35rem;
@@ -69,11 +77,11 @@
             border-bottom: 1px solid #444;
         }
         th { background: #222; color: #ff8800; }
-        .note, .edit-note {
+        .note {
             font-size: 0.9rem;
             color: #888;
             text-align: center;
-            margin-top: 25px;
+            margin-top: 30px;
         }
     </style>
 </head>
@@ -93,8 +101,8 @@
         <div class="input-group">
             <label for="wellCount">Well # on pad:</label>
             <select id="wellCount">
-                <option value="2nd+" selected>2nd+</option>
                 <option value="1st">1st</option>
+                <option value="2nd+" selected>2nd+</option>
             </select>
         </div>
 
@@ -116,9 +124,9 @@
         </div>
 
         <div class="input-group">
-            <label for="contingency">Contingency:</label>
-            <input type="number" id="contingency" value="0.05" step="0.01" min="0" max="1">
-            <span style="color:#888;">(e.g. 0.05 = 5%)</span>
+            <label for="contingency">Contingency (%):</label>
+            <input type="number" id="contingency" value="5" min="0" max="50" step="0.1">
+            <span style="color:#888;">%</span>
         </div>
 
         <div class="live-price" id="liveBtcPrice">
@@ -145,15 +153,12 @@
                 <tr><td>Fuel/Boiler</td><td id="fuel">0</td></tr>
                 <tr><td>Rig Move</td><td id="rigMove">0</td></tr>
                 <tr><td>Frac Stage Component</td><td id="fracPart">0</td></tr>
-                <tr><td>Trendline Component</td><td id="trendPart">0</td></tr>
+                <tr><td>Trendline Component (R² value)</td><td id="trendPart">0</td></tr>
                 <tr><td>Contingency</td><td id="cont">0</td></tr>
                 <tr style="font-weight:bold; background:#222;"><td>Total</td><td id="totalRow">0</td></tr>
             </tbody>
         </table>
 
-        <div class="edit-note">
-            <strong>Easy to edit:</strong> Scroll to the &lt;script&gt; section → change fuelRates, rigMoveRates, or any formula constant.
-        </div>
         <div class="note">
             LL is in meters • Live Bitcoin price (CAD) from CoinGecko • Real-time updates
         </div>
@@ -171,7 +176,7 @@
             "2nd+": 25000
         };
 
-        // Formula constants (easy to change)
+        // Formula constants
         const FRAC_C = 2150;
         const FRAC_FIXED = 55000;
         const FRAC_DIV = 14.5;
@@ -180,7 +185,7 @@
 
         // ============================================================
 
-        let currentBtcPriceCAD = 98800;   // fallback value
+        let currentBtcPriceCAD = 98800;   // fallback
 
         async function fetchLiveBtcPrice() {
             try {
@@ -188,7 +193,6 @@
                 const data = await response.json();
                 currentBtcPriceCAD = data.bitcoin.cad;
 
-                // Update live price display
                 document.getElementById('liveBtcPrice').innerHTML = 
                     `Bitcoin Price (CAD): <strong>$${currentBtcPriceCAD.toLocaleString('en-CA')}</strong> <span style="font-size:0.85rem;color:#666;">(live)</span>`;
             } catch (err) {
@@ -196,47 +200,35 @@
                 document.getElementById('liveBtcPrice').innerHTML = 
                     `Bitcoin Price (CAD): <strong>$${currentBtcPriceCAD.toLocaleString('en-CA')}</strong> <span style="font-size:0.85rem;color:#f66;">(fallback)</span>`;
             }
-            calculate();   // recalculate with new price
+            calculate();
         }
 
         function calculate() {
             const weather = document.getElementById('weather').value;
             const wellCount = document.getElementById('wellCount').value;
             const fracSpacing = parseFloat(document.getElementById('fracSpacing').value);
-            const LL = parseFloat(document.getElementById('ll').value) || 3000;   // LL in meters
-            const contingency = parseFloat(document.getElementById('contingency').value) || 0.05;
+            const LL = parseFloat(document.getElementById('ll').value) || 3000;
+            let contingencyPct = parseFloat(document.getElementById('contingency').value) || 5;
+            const contingency = contingencyPct / 100;   // convert % to decimal
 
-            // Fuel/Boiler
             const fuel = fuelRates[weather] * LL;
-
-            // Rig Move
             const rigMove = rigMoveRates[wellCount] || 25000;
-
-            // Frac Stage Component
             const fracPart = (LL / (fracSpacing * FRAC_DIV)) * FRAC_C + FRAC_FIXED;
-
-            // Trendline Component
             const trendPart = LL * (TREND_A * LL + TREND_B);
 
-            // Subtotal + Contingency
             const subtotal = fuel + rigMove + fracPart + trendPart;
             const totalCAD = subtotal * (1 + contingency);
-
-            // Sats using live price
             const totalSats = Math.round((totalCAD / currentBtcPriceCAD) * 100000000);
 
-            // Per LLm
             const cadPerLLm = LL > 0 ? (totalCAD / LL).toFixed(2) : 0;
             const satsPerLLm = LL > 0 ? Math.round(totalSats / LL) : 0;
 
-            // Update UI
             document.getElementById('totalCAD').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA') + ' CAD';
             document.getElementById('totalSats').textContent = totalSats.toLocaleString('en-US') + ' Sats';
 
             document.getElementById('cadPerLLm').textContent = 'C$' + cadPerLLm + ' / LLm';
             document.getElementById('satsPerLLm').textContent = satsPerLLm.toLocaleString('en-US') + ' Sats / LLm';
 
-            // Breakdown
             document.getElementById('fuel').textContent = '$' + Math.round(fuel).toLocaleString('en-CA');
             document.getElementById('rigMove').textContent = '$' + Math.round(rigMove).toLocaleString('en-CA');
             document.getElementById('fracPart').textContent = '$' + Math.round(fracPart).toLocaleString('en-CA');
@@ -245,15 +237,13 @@
             document.getElementById('totalRow').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA');
         }
 
-        // Live updates on any input change
         document.querySelectorAll('select, input').forEach(input => {
             input.addEventListener('input', calculate);
         });
 
-        // Initial load
         window.onload = async () => {
-            await fetchLiveBtcPrice();        // get live price immediately
-            setInterval(fetchLiveBtcPrice, 60000);   // refresh every 60 seconds
+            await fetchLiveBtcPrice();
+            setInterval(fetchLiveBtcPrice, 60000);
         };
     </script>
 </body>
