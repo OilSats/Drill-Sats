@@ -66,14 +66,12 @@
             border-radius: 10px;
             text-align: center;
             border: 2px solid #333;
-            position: relative;
         }
 
         .total-label { 
             font-size: 1.1rem; 
             color: #aaa; 
             margin: 8px 0 4px; 
-            cursor: help;
         }
         .total-cad { 
             font-size: 2.3rem; 
@@ -84,27 +82,6 @@
             font-size: 2.8rem; 
             font-weight: bold; 
             color: #ff8800; 
-        }
-
-        /* Tooltip Styles */
-        .total-label[title] {
-            position: relative;
-        }
-        .total-label[title]:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            white-space: nowrap;
-            z-index: 10;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            pointer-events: none;
         }
 
         .per-llm {
@@ -157,7 +134,7 @@
             <label for="weather">Weather:</label>
             <select id="weather">
                 <option value="Warm">Warm</option>
-                <option value="Cold" selected>Cold</option>
+                <option value="Cold">Cold</option>
             </select>
         </div>
 
@@ -165,7 +142,7 @@
             <label for="wellCount">Well # on pad:</label>
             <select id="wellCount">
                 <option value="1st">1st</option>
-                <option value="2nd+" selected>2nd+</option>
+                <option value="2nd+">2nd+</option>
             </select>
         </div>
 
@@ -198,7 +175,6 @@
             <div class="total-label">CAD</div>
             <div class="total-cad" id="totalCAD">$0</div>
             
-            <!-- SATS with tooltip -->
             <div class="total-label" title="1 ₿itcoin = 100,000,000 SATS">SATS</div>
             <div class="total-sats" id="totalSats">0</div>
             
@@ -235,7 +211,7 @@
         </table>
 
         <div class="note">
-            LL is in meters • Live ₿itcoin price (CAD) • Apr 2026 Prepared By: Ian Mills - Drilling Engineer; P.L. Eng
+            LL is in meters • Live ₿itcoin price (CAD) •  2026-04-09; Prepared By: Ian Mills - Drilling Engineer; P.L. Eng
         </div>
     </div>
 
@@ -254,12 +230,42 @@
 
         let currentBtcPriceCAD = 98800;
 
+        // ==================== SAVE & LOAD INPUTS ====================
+        function saveInputs() {
+            localStorage.setItem('drillSats_weather', document.getElementById('weather').value);
+            localStorage.setItem('drillSats_wellCount', document.getElementById('wellCount').value);
+            localStorage.setItem('drillSats_fracSpacing', document.getElementById('fracSpacing').value);
+            localStorage.setItem('drillSats_ll', document.getElementById('ll').value);
+            localStorage.setItem('drillSats_contingency', document.getElementById('contingency').value);
+        }
+
+        function loadInputs() {
+            const weather = localStorage.getItem('drillSats_weather');
+            const wellCount = localStorage.getItem('drillSats_wellCount');
+            const fracSpacing = localStorage.getItem('drillSats_fracSpacing');
+            const ll = localStorage.getItem('drillSats_ll');
+            const contingency = localStorage.getItem('drillSats_contingency');
+
+            if (weather) document.getElementById('weather').value = weather;
+            if (wellCount) document.getElementById('wellCount').value = wellCount;
+            if (fracSpacing) document.getElementById('fracSpacing').value = fracSpacing;
+            if (ll) document.getElementById('ll').value = ll;
+            if (contingency) document.getElementById('contingency').value = contingency;
+        }
+
+        // Save inputs whenever user changes anything
+        function setupAutoSave() {
+            document.querySelectorAll('select, input').forEach(el => {
+                el.addEventListener('change', saveInputs);
+                el.addEventListener('input', saveInputs);   // for number inputs
+            });
+        }
+
         async function fetchLiveBtcPrice() {
             try {
                 const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=cad');
                 const data = await response.json();
                 currentBtcPriceCAD = data.bitcoin.cad;
-
                 document.getElementById('liveBtcPrice').innerHTML = 
                     `Bitcoin Price (CAD): <strong>$${currentBtcPriceCAD.toLocaleString('en-CA')}</strong> <span style="font-size:0.85rem;color:#666;">(live)</span>`;
             } catch (err) {
@@ -270,6 +276,7 @@
         }
 
         function calculate() {
+            // ... your existing calculate function (unchanged) ...
             const weather = document.getElementById('weather').value;
             const wellCount = document.getElementById('wellCount').value;
             const fracSpacing = parseFloat(document.getElementById('fracSpacing').value);
@@ -291,7 +298,6 @@
 
             const cadPerLLm = LL > 0 ? (totalCAD / LL).toFixed(2) : 0;
             const satsPerLLm = LL > 0 ? Math.round(totalSats / LL) : 0;
-
             const estDays = (LL / LL_PER_DAY).toFixed(1);
 
             document.getElementById('totalCAD').textContent = '$' + Math.round(totalCAD).toLocaleString('en-CA');
@@ -311,13 +317,13 @@
             document.getElementById('r2Value').textContent = R_SQUARED.toFixed(2);
         }
 
-        document.querySelectorAll('select, input').forEach(input => {
-            input.addEventListener('input', calculate);
-        });
-
+        // Initialize everything
         window.onload = async () => {
+            loadInputs();           // Restore saved values
+            setupAutoSave();        // Enable auto-saving
             await fetchLiveBtcPrice();
             setInterval(fetchLiveBtcPrice, 60000);
+            calculate();            // Initial calculation
         };
     </script>
 </body>
